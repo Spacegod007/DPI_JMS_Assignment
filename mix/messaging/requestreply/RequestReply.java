@@ -1,5 +1,7 @@
 package messaging.requestreply;
 
+import java.io.Serializable;
+
 /**
  * This class stores pairs Request-Reply. We will use this class in Loan Client and ABN Amro applications
  *  in order to make it easier for us to store pairs Request-Reply as items in a GUI JList.
@@ -10,7 +12,8 @@ package messaging.requestreply;
  * @param <REQUEST>
  * @param <REPLY>
  */
-public class RequestReply<REQUEST,REPLY> {
+public class RequestReply<REQUEST,REPLY> implements Serializable
+{
 	
 	private REQUEST request;
 	private REPLY reply;

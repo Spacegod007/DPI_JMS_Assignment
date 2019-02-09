@@ -1,14 +1,23 @@
 package loanclient;
+import messaging.MessageReceiver;
 import messaging.MessageSender;
 import messaging.requestreply.RequestReply;
+import model.StaticNames;
 import model.loan.LoanReply;
 import model.loan.LoanRequest;
+import model.loan.LoanRequestReply;
 
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.ObjectMessage;
+import javax.naming.NamingException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LoanClientFrame extends JFrame {
 
@@ -26,10 +35,13 @@ public class LoanClientFrame extends JFrame {
 	private JLabel lblNewLabel_1;
 	private JTextField tfTime;
 
+	private Map<RequestReply, String> idByRequestReply = new HashMap<>();
+
 	/**
 	 * Create the frame.
 	 */
-	public LoanClientFrame() {
+	public LoanClientFrame() throws NamingException
+	{
 		setTitle("Loan Client");
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -124,14 +136,43 @@ public class LoanClientFrame extends JFrame {
 		
 		requestReplyList = new JList<RequestReply<LoanRequest,LoanReply>>(listModel);
 		scrollPane.setViewportView(requestReplyList);
+
+		prepareReceiveMessage();
 	}
 
-	private void sendRequest(LoanRequest request)
+	private void prepareReceiveMessage() throws NamingException
 	{
+		MessageReceiver messageReceiver = new MessageReceiver(StaticNames.CLIENT_DESTINATION);
+		messageReceiver.PrepareReceiveMessage(this::messageReceived);
+	}
+
+	private void messageReceived(Message message)
+	{
+		ObjectMessage objectMessage = (ObjectMessage) message;
 		try
 		{
-			MessageSender messageSender = new MessageSender("broker");
-			messageSender.SendMessage(request);
+			Object receivedObject = objectMessage.getObject();
+			if (receivedObject instanceof LoanRequestReply)
+			{
+				LoanRequestReply loanRequestReply = (LoanRequestReply) receivedObject;
+				listModel.add(listModel.getSize(), loanRequestReply);
+			}
+		}
+		catch (JMSException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	private void sendRequest(LoanRequest loanRequest)
+	{
+		LoanRequestReply clientRequestReply = new LoanRequestReply(loanRequest, null);
+
+		try
+		{
+			MessageSender messageSender = new MessageSender(StaticNames.BROKER_FROM_CLIENT_DESTINATION);
+			String messageId = messageSender.SendMessage(clientRequestReply);
+			idByRequestReply.put(clientRequestReply, messageId);
 		}
 		catch (Exception e)
 		{

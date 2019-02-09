@@ -16,7 +16,7 @@ public class MessageSender extends BaseMessageSendReceiver
         super(destination);
     }
 
-    public boolean SendMessage(Serializable serializableObject)
+    public String SendMessage(Serializable serializableObject)
     {
         try {
             buildConnection();
@@ -25,13 +25,12 @@ public class MessageSender extends BaseMessageSendReceiver
             Message message = session.createObjectMessage(serializableObject);
 
             producer.send(message);
+            return message.getJMSMessageID();
         }
         catch (JMSException e)
         {
             LOGGER.log(Level.SEVERE, "Something went wrong while sending the message", e);
-            return false;
+            return null;
         }
-
-        return true;
     }
 }

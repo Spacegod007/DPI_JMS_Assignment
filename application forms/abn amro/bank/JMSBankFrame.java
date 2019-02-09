@@ -1,23 +1,21 @@
 package bank;
-import java.awt.EventQueue;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import messaging.MessageReceiver;
+import messaging.MessageSender;
+import messaging.requestreply.RequestReply;
+import model.StaticNames;
+import model.bank.BankInterestReply;
+import model.bank.BankInterestRequest;
+import model.bank.BankInterestRequestReply;
+
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.ObjectMessage;
+import javax.naming.NamingException;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.border.EmptyBorder;
-
-import model.bank.*;
-import messaging.requestreply.RequestReply;
 
 public class JMSBankFrame extends JFrame {
 
@@ -48,7 +46,8 @@ public class JMSBankFrame extends JFrame {
 	/**
 	 * Create the frame.
 	 */
-	public JMSBankFrame() {
+	public JMSBankFrame() throws NamingException
+	{
 		setTitle("JMS Bank - ABN AMRO");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
@@ -95,12 +94,13 @@ public class JMSBankFrame extends JFrame {
 		JButton btnSendReply = new JButton("send reply");
 		btnSendReply.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				RequestReply<BankInterestRequest, BankInterestReply> rr = list.getSelectedValue();
+				RequestReply<BankInterestRequest, BankInterestReply> requestReply = list.getSelectedValue();
 				double interest = Double.parseDouble((tfReply.getText()));
 				BankInterestReply reply = new BankInterestReply(interest,"ABN AMRO");
-				if (rr!= null && reply != null){
-					rr.setReply(reply);
+				if (requestReply!= null && reply != null){
+					requestReply.setReply(reply);
 	                list.repaint();
+	                sendMessage((BankInterestRequestReply) requestReply);
 					// todo: sent JMS message with the reply to Loan Broker
 				}
 			}
@@ -110,6 +110,48 @@ public class JMSBankFrame extends JFrame {
 		gbc_btnSendReply.gridx = 4;
 		gbc_btnSendReply.gridy = 1;
 		contentPane.add(btnSendReply, gbc_btnSendReply);
+
+		prepareReceive();
 	}
 
+	private void sendMessage(BankInterestRequestReply requestReply)
+	{
+		try
+		{
+			MessageSender messageSender = new MessageSender(StaticNames.BROKER_FROM_BANK_DESTINATION);
+			messageSender.SendMessage(requestReply);
+		}
+		catch (NamingException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	private void prepareReceive() throws NamingException
+	{
+		MessageReceiver messageReceiver = new MessageReceiver(StaticNames.ABN_AMRO_BANK_DESTINATION);
+		messageReceiver.PrepareReceiveMessage(this::messageReceived);
+	}
+
+	private void messageReceived(Message message)
+	{
+		ObjectMessage objectMessage = (ObjectMessage) message;
+		try
+		{
+			Object receivedObject = objectMessage.getObject();
+			if (receivedObject instanceof BankInterestRequestReply)
+			{
+				BankInterestRequestReply bankInterestRequestReply = (BankInterestRequestReply) receivedObject;
+				listModel.add(listModel.getSize(), bankInterestRequestReply);
+			}
+			else
+			{
+				//todo throw new exception
+			}
+		}
+		catch (JMSException e)
+		{
+			e.printStackTrace();
+		}
+	}
 }
