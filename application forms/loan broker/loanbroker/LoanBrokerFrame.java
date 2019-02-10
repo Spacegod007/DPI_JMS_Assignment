@@ -50,6 +50,12 @@ public class LoanBrokerFrame extends JFrame {
 	 */
 	private LoanBrokerFrame() throws NamingException
 	{
+		LoadFrame();
+		prepareMessageListener();
+	}
+
+	private void LoadFrame()
+	{
 		setTitle("Loan Broker");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
@@ -62,7 +68,7 @@ public class LoanBrokerFrame extends JFrame {
 		gbl_contentPane.columnWeights = new double[]{1.0, 0.0, 1.0, 0.0, 0.0, Double.MIN_VALUE};
 		gbl_contentPane.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
 		contentPane.setLayout(gbl_contentPane);
-		
+
 		JScrollPane scrollPane = new JScrollPane();
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 		gbc_scrollPane.gridwidth = 7;
@@ -71,11 +77,9 @@ public class LoanBrokerFrame extends JFrame {
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		contentPane.add(scrollPane, gbc_scrollPane);
-		
+
 		list = new JList<>(listModel);
 		scrollPane.setViewportView(list);
-
-		prepareMessageListener();
 	}
 
 	private void prepareMessageListener() throws NamingException

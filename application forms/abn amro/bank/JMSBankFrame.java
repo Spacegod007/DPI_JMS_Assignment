@@ -13,8 +13,6 @@ import javax.naming.NamingException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -53,6 +51,12 @@ public class JMSBankFrame extends JFrame {
 	 */
 	private JMSBankFrame() throws NamingException
 	{
+		LoadFrame();
+		prepareReceive();
+	}
+
+	private void LoadFrame()
+	{
 		setTitle("JMS Bank - ABN AMRO");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
@@ -65,7 +69,7 @@ public class JMSBankFrame extends JFrame {
 		gbl_contentPane.columnWeights = new double[]{1.0, 0.0, 1.0, 0.0, 0.0, Double.MIN_VALUE};
 		gbl_contentPane.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
 		contentPane.setLayout(gbl_contentPane);
-		
+
 		JScrollPane scrollPane = new JScrollPane();
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 		gbc_scrollPane.gridwidth = 5;
@@ -74,10 +78,10 @@ public class JMSBankFrame extends JFrame {
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		contentPane.add(scrollPane, gbc_scrollPane);
-		
+
 		JList<RequestReply<BankInterestRequest, BankInterestReply>> list = new JList<RequestReply<BankInterestRequest, BankInterestReply>>(listModel);
 		scrollPane.setViewportView(list);
-		
+
 		JLabel lblNewLabel = new JLabel("type reply");
 		GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
 		gbc_lblNewLabel.anchor = GridBagConstraints.EAST;
@@ -85,7 +89,7 @@ public class JMSBankFrame extends JFrame {
 		gbc_lblNewLabel.gridx = 0;
 		gbc_lblNewLabel.gridy = 1;
 		contentPane.add(lblNewLabel, gbc_lblNewLabel);
-		
+
 		tfReply = new JTextField();
 		GridBagConstraints gbc_tfReply = new GridBagConstraints();
 		gbc_tfReply.gridwidth = 2;
@@ -95,13 +99,13 @@ public class JMSBankFrame extends JFrame {
 		gbc_tfReply.gridy = 1;
 		contentPane.add(tfReply, gbc_tfReply);
 		tfReply.setColumns(10);
-		
+
 		JButton btnSendReply = new JButton("send reply");
 		btnSendReply.addActionListener(e -> {
 			RequestReply<BankInterestRequest, BankInterestReply> requestReply = list.getSelectedValue();
 			double interest = Double.parseDouble((tfReply.getText()));
 			BankInterestReply reply = new BankInterestReply(interest,"ABN AMRO");
-			if (requestReply!= null && reply != null){
+			if (requestReply != null){
 				requestReply.setReply(reply);
 				list.repaint();
 				sendMessage(requestReply.getRequest(), reply);
@@ -112,8 +116,6 @@ public class JMSBankFrame extends JFrame {
 		gbc_btnSendReply.gridx = 4;
 		gbc_btnSendReply.gridy = 1;
 		contentPane.add(btnSendReply, gbc_btnSendReply);
-
-		prepareReceive();
 	}
 
 	private void sendMessage(BankInterestRequest bankInterestRequest, BankInterestReply bankInterestReply)
