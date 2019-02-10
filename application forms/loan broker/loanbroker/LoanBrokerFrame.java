@@ -34,6 +34,9 @@ public class LoanBrokerFrame extends JFrame {
 
 	private Map<String, LoanRequest> loanRequestById = new HashMap<>();
 
+	/**
+	 * Loaunches the application
+	 */
 	public static void main(String[] args) {
 		EventQueue.invokeLater(() -> {
 			try {
@@ -46,7 +49,7 @@ public class LoanBrokerFrame extends JFrame {
 	}
 
 	/**
-	 * Create the frame.
+	 * Constructs the class
 	 */
 	private LoanBrokerFrame() throws NamingException
 	{
@@ -54,6 +57,9 @@ public class LoanBrokerFrame extends JFrame {
 		prepareMessageListener();
 	}
 
+	/**
+	 * Loads the GUI frame
+	 */
 	private void LoadFrame()
 	{
 		setTitle("Loan Broker");
@@ -82,6 +88,10 @@ public class LoanBrokerFrame extends JFrame {
 		scrollPane.setViewportView(list);
 	}
 
+	/**
+	 * Prepares the broker to listen for messages
+	 * @throws NamingException
+	 */
 	private void prepareMessageListener() throws NamingException
 	{
 		MessageReceiver clientMessageReceiver = new MessageReceiver(StaticNames.BROKER_FROM_CLIENT_DESTINATION);
@@ -90,6 +100,10 @@ public class LoanBrokerFrame extends JFrame {
 		bankMessageReceiver.PrepareReceiveMessage(this::bankMessageReceived);
 	}
 
+	/**
+	 * Gets fired when a message is received from the client-channel
+	 * @param message the received message
+	 */
 	private void clientMessageReceived(Message message)
 	{
 		ObjectMessage objectMessage = (ObjectMessage) message;
@@ -117,6 +131,11 @@ public class LoanBrokerFrame extends JFrame {
 		}
 	}
 
+	/**
+	 * Sends a request to the bank from the loan-request send by a client
+	 * @param loanRequest The request from the client
+	 * @param correlationID An id which refers to the request over multiple systems
+	 */
 	private void SendBankInterestRequest(LoanRequest loanRequest, String correlationID)
 	{
 		BankInterestRequest bankInterestRequest = bankInterestRequestFromLoanRequest(loanRequest);
@@ -132,6 +151,10 @@ public class LoanBrokerFrame extends JFrame {
 		}
 	}
 
+	/**
+	 * Gets fired on a message received on the bank-channel
+	 * @param message The received message
+	 */
 	private void bankMessageReceived(Message message)
 	{
 		ObjectMessage objectMessage = (ObjectMessage) message;
@@ -157,6 +180,11 @@ public class LoanBrokerFrame extends JFrame {
 		}
 	}
 
+	/**
+	 * Sends a LoanReply to the client from the BankInterestReply
+	 * @param bankInterestReply The reply from the bank which answers the request
+	 * @param correlationID An id which refers to the request over multiple systems
+	 */
 	private void sendClientLoanReply(BankInterestReply bankInterestReply, String correlationID)
 	{
 
@@ -165,6 +193,7 @@ public class LoanBrokerFrame extends JFrame {
 		{
 			MessageSender messageSender = new MessageSender(StaticNames.CLIENT_DESTINATION);
 			messageSender.SendMessage(loanReply, correlationID);
+			loanRequestById.remove(correlationID);
 		}
 		catch (NamingException e)
 		{
@@ -184,11 +213,10 @@ public class LoanBrokerFrame extends JFrame {
 	     
 	     return null;
 	}
-	
+
 	private void add(LoanRequest loanRequest){
 		listModel.addElement(new JListLine(loanRequest));		
 	}
-	
 
 	private void add(LoanRequest loanRequest, BankInterestRequest bankRequest){
 		JListLine rr = getRequestReply(loanRequest);
@@ -206,10 +234,20 @@ public class LoanBrokerFrame extends JFrame {
 		}		
 	}
 
+	/**
+	 * Converts a LoanRequest to a BankInterestRequest which is fit to send to banks
+	 * @param loanRequest The LoanRequest to convert
+	 * @return A new BankInterestRequest
+	 */
 	private BankInterestRequest bankInterestRequestFromLoanRequest(LoanRequest loanRequest) {
 		return new BankInterestRequest(loanRequest.getAmount(), loanRequest.getTime());
 	}
 
+	/**
+	 * Converts a BankInterestReply to a LoanReply which is fit to send to clients
+	 * @param bankInterestReply The BankInterestReply to convert
+	 * @return A new LoanReply
+	 */
 	private LoanReply loanReplyFromBankInterestReply(BankInterestReply bankInterestReply) {
 		return new LoanReply(bankInterestReply.getInterest(), bankInterestReply.getQuoteId());
 	}

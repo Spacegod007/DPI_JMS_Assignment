@@ -22,9 +22,6 @@ public class LoanClientFrame extends JFrame {
 
 	private static final Logger LOGGER = Logger.getLogger(LoanClientFrame.class.getName());
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
 	private JTextField tfSSN;
@@ -39,15 +36,17 @@ public class LoanClientFrame extends JFrame {
 	private Map<String, LoanRequest> requestById = new HashMap<>();
 
 	/**
-	 * Create the frame.
+	 * Constructs the class
 	 */
 	private LoanClientFrame() throws NamingException
 	{
 		LoadFrame();
-
 		prepareReceiveMessage();
 	}
 
+	/**
+	 * Loads the GUI frame
+	 */
 	private void LoadFrame()
 	{
 		setTitle("Loan Client");
@@ -144,12 +143,20 @@ public class LoanClientFrame extends JFrame {
 		scrollPane.setViewportView(requestReplyList);
 	}
 
+	/**
+	 * Prepares the client to receive messages
+	 * @throws NamingException
+	 */
 	private void prepareReceiveMessage() throws NamingException
 	{
 		MessageReceiver messageReceiver = new MessageReceiver(StaticNames.CLIENT_DESTINATION);
 		messageReceiver.PrepareReceiveMessage(this::messageReceived);
 	}
 
+	/**
+	 * Gets fired when a message is received
+	 * @param message the received message
+	 */
 	private void messageReceived(Message message)
 	{
 		ObjectMessage objectMessage = (ObjectMessage) message;
@@ -159,10 +166,12 @@ public class LoanClientFrame extends JFrame {
 			if (receivedObject instanceof LoanReply)
 			{
 				LoanReply loanReply = (LoanReply) receivedObject;
-				LoanRequest loanRequest = requestById.get(message.getJMSCorrelationID());
-				if (loanRequest != null)
+				String correlationID = message.getJMSCorrelationID();
+				LoanRequest loanRequest = requestById.get(correlationID);
+
+				if (loanRequest != null && setRequestReply(loanRequest, loanReply))
 				{
-					setRequestReply(loanRequest, loanReply);
+					requestById.remove(correlationID);
 				}
 			}
 			else
@@ -176,15 +185,27 @@ public class LoanClientFrame extends JFrame {
 		}
 	}
 
-	private void setRequestReply(LoanRequest loanRequest, LoanReply loanReply)
+	/**
+	 * Sets the reply to a request
+	 * @param loanRequest The request of which the reply should be set
+	 * @param loanReply The reply to set
+	 * @return Returns true if the reply is set otherwise false
+	 */
+	private boolean setRequestReply(LoanRequest loanRequest, LoanReply loanReply)
 	{
 		RequestReply<LoanRequest, LoanReply> requestReply = getRequestReply(loanRequest);
 		if (requestReply != null)
 		{
 			requestReply.setReply(loanReply);
+			return true;
 		}
+		return false;
 	}
 
+	/**
+	 * Sends a request of to loan to the broker
+	 * @param loanRequest The request to send
+	 */
 	private void sendRequest(LoanRequest loanRequest)
 	{
 		try
@@ -216,7 +237,11 @@ public class LoanClientFrame extends JFrame {
      
      return null;
    }
-	
+
+	/**
+	 * Launches the application
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		EventQueue.invokeLater(() -> {
 			try {

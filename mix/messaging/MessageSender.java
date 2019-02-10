@@ -8,15 +8,29 @@ import java.io.Serializable;
 import java.util.UUID;
 import java.util.logging.Level;
 
+/**
+ * A class used to send messages to different systems
+ */
 public class MessageSender extends BaseMessageSendReceiver
 {
     private MessageProducer producer;
 
+    /**
+     * Constructs the MessageSender object
+     * @param destination The destination/channel to which messages will be send
+     * @throws NamingException
+     */
     public MessageSender(String destination) throws NamingException
     {
         super(destination);
     }
 
+    /**
+     * Sends a message
+     * @param serializableObject The object to send
+     * @param correlationID An id to refer to the message at a later date
+     * @return Returns the correlation Id
+     */
     public String SendMessage(Serializable serializableObject, String correlationID)
     {
         try {
@@ -37,6 +51,11 @@ public class MessageSender extends BaseMessageSendReceiver
         return null;
     }
 
+    /**
+     * Sends a message
+     * @param serializableObject The object to send
+     * @return Returns an Id to refer to the message at a later date
+     */
     public String SendMessage(Serializable serializableObject)
     {
         String uuid = UUID.randomUUID().toString();

@@ -22,9 +22,6 @@ public class JMSBankFrame extends JFrame {
 
 	private static final Logger LOGGER = Logger.getLogger(JMSBankFrame.class.getName());
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
 	private JTextField tfReply;
@@ -33,7 +30,7 @@ public class JMSBankFrame extends JFrame {
 	private Map<BankInterestRequest, String> idByRequest = new HashMap<>();
 	
 	/**
-	 * Launch the application.
+	 * Launches the application.
 	 */
 	public static void main(String[] args) {
 		EventQueue.invokeLater(() -> {
@@ -47,7 +44,7 @@ public class JMSBankFrame extends JFrame {
 	}
 
 	/**
-	 * Create the frame.
+	 * Constructs the class
 	 */
 	private JMSBankFrame() throws NamingException
 	{
@@ -55,6 +52,9 @@ public class JMSBankFrame extends JFrame {
 		prepareReceive();
 	}
 
+	/**
+	 * Loads the GUI frame
+	 */
 	private void LoadFrame()
 	{
 		setTitle("JMS Bank - ABN AMRO");
@@ -118,6 +118,11 @@ public class JMSBankFrame extends JFrame {
 		contentPane.add(btnSendReply, gbc_btnSendReply);
 	}
 
+	/**
+	 * Sends a message to the broker which is a reply to a specified request
+	 * @param bankInterestRequest the specified request which is replied to
+	 * @param bankInterestReply the reply of the bank
+	 */
 	private void sendMessage(BankInterestRequest bankInterestRequest, BankInterestReply bankInterestReply)
 	{
 		String correlationID = idByRequest.get(bankInterestRequest);
@@ -126,6 +131,7 @@ public class JMSBankFrame extends JFrame {
 		{
 			MessageSender messageSender = new MessageSender(StaticNames.BROKER_FROM_BANK_DESTINATION);
 			messageSender.SendMessage(bankInterestReply, correlationID);
+			idByRequest.remove(bankInterestRequest);
 		}
 		catch (NamingException e)
 		{
@@ -133,12 +139,20 @@ public class JMSBankFrame extends JFrame {
 		}
 	}
 
+	/**
+	 * Prepares the server-side to receive messages
+	 * @throws NamingException
+	 */
 	private void prepareReceive() throws NamingException
 	{
 		MessageReceiver messageReceiver = new MessageReceiver(StaticNames.ABN_AMRO_BANK_DESTINATION);
 		messageReceiver.PrepareReceiveMessage(this::messageReceived);
 	}
 
+	/**
+	 * Gets fired when a message is received
+	 * @param message the received message
+	 */
 	private void messageReceived(Message message)
 	{
 		ObjectMessage objectMessage = (ObjectMessage) message;
@@ -161,6 +175,11 @@ public class JMSBankFrame extends JFrame {
 		}
 	}
 
+	/**
+	 * Adds a request to the list of requests
+	 * @param bankInterestRequest The request to get added
+	 * @param correlationID The Id which refers to this request over multiple systems
+	 */
 	private void addRequestToList(BankInterestRequest bankInterestRequest, String correlationID)
 	{
 		RequestReply<BankInterestRequest, BankInterestReply> bankInterestRequestReply = new RequestReply<>(bankInterestRequest, null);

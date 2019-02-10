@@ -10,6 +10,9 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * A base class which contains values required for both sending and receiving messages
+ */
 class BaseMessageSendReceiver
 {
     static final Logger LOGGER = Logger.getLogger(BaseMessageSendReceiver.class.getName());
@@ -22,6 +25,11 @@ class BaseMessageSendReceiver
     Session session;
     Destination destination;
 
+    /**
+     * Constructs the class
+     * @param destination The destination/channel over which messages will be transported
+     * @throws NamingException
+     */
     BaseMessageSendReceiver(String destination) throws NamingException
     {
         destinationString = destination;
@@ -33,6 +41,10 @@ class BaseMessageSendReceiver
         ((ActiveMQConnectionFactory) factory).setTrustAllPackages(true);
     }
 
+    /**
+     * Builds a set of properties required to create a context for the messages
+     * @return Returns a new Properties object
+     */
     private Properties buildPropertySet()
     {
         Properties properties = new Properties();
@@ -43,6 +55,10 @@ class BaseMessageSendReceiver
         return properties;
     }
 
+    /**
+     * Builds the connection required for both sending and receiving messages
+     * @throws JMSException
+     */
     void buildConnection() throws JMSException
     {
         connection = factory.createConnection();
