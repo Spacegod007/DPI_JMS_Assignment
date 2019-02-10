@@ -5,7 +5,6 @@ import messaging.requestreply.RequestReply;
 import model.StaticNames;
 import model.bank.BankInterestReply;
 import model.bank.BankInterestRequest;
-import model.bank.BankInterestRequestReply;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -16,8 +15,14 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class JMSBankFrame extends JFrame {
+
+	private static final Logger LOGGER = Logger.getLogger(JMSBankFrame.class.getName());
 
 	/**
 	 * 
@@ -25,20 +30,20 @@ public class JMSBankFrame extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
 	private JTextField tfReply;
-	private DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>> listModel = new DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>>();
+	private DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>> listModel = new DefaultListModel<>();
+
+	private Map<BankInterestRequest, String> idByRequest = new HashMap<>();
 	
 	/**
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					JMSBankFrame frame = new JMSBankFrame();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+		EventQueue.invokeLater(() -> {
+			try {
+				JMSBankFrame frame = new JMSBankFrame();
+				frame.setVisible(true);
+			} catch (Exception e) {
+				LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_APPLICATION_EXECUTION, e);
 			}
 		});
 	}
@@ -46,7 +51,7 @@ public class JMSBankFrame extends JFrame {
 	/**
 	 * Create the frame.
 	 */
-	public JMSBankFrame() throws NamingException
+	private JMSBankFrame() throws NamingException
 	{
 		setTitle("JMS Bank - ABN AMRO");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -92,17 +97,14 @@ public class JMSBankFrame extends JFrame {
 		tfReply.setColumns(10);
 		
 		JButton btnSendReply = new JButton("send reply");
-		btnSendReply.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				RequestReply<BankInterestRequest, BankInterestReply> requestReply = list.getSelectedValue();
-				double interest = Double.parseDouble((tfReply.getText()));
-				BankInterestReply reply = new BankInterestReply(interest,"ABN AMRO");
-				if (requestReply!= null && reply != null){
-					requestReply.setReply(reply);
-	                list.repaint();
-	                sendMessage((BankInterestRequestReply) requestReply);
-					// todo: sent JMS message with the reply to Loan Broker
-				}
+		btnSendReply.addActionListener(e -> {
+			RequestReply<BankInterestRequest, BankInterestReply> requestReply = list.getSelectedValue();
+			double interest = Double.parseDouble((tfReply.getText()));
+			BankInterestReply reply = new BankInterestReply(interest,"ABN AMRO");
+			if (requestReply!= null && reply != null){
+				requestReply.setReply(reply);
+				list.repaint();
+				sendMessage(requestReply.getRequest(), reply);
 			}
 		});
 		GridBagConstraints gbc_btnSendReply = new GridBagConstraints();
@@ -114,16 +116,18 @@ public class JMSBankFrame extends JFrame {
 		prepareReceive();
 	}
 
-	private void sendMessage(BankInterestRequestReply requestReply)
+	private void sendMessage(BankInterestRequest bankInterestRequest, BankInterestReply bankInterestReply)
 	{
+		String correlationID = idByRequest.get(bankInterestRequest);
+
 		try
 		{
 			MessageSender messageSender = new MessageSender(StaticNames.BROKER_FROM_BANK_DESTINATION);
-			messageSender.SendMessage(requestReply);
+			messageSender.SendMessage(bankInterestReply, correlationID);
 		}
 		catch (NamingException e)
 		{
-			e.printStackTrace();
+			LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_SENDING_MESSAGE, e);
 		}
 	}
 
@@ -139,19 +143,26 @@ public class JMSBankFrame extends JFrame {
 		try
 		{
 			Object receivedObject = objectMessage.getObject();
-			if (receivedObject instanceof BankInterestRequestReply)
+			if (receivedObject instanceof BankInterestRequest)
 			{
-				BankInterestRequestReply bankInterestRequestReply = (BankInterestRequestReply) receivedObject;
-				listModel.add(listModel.getSize(), bankInterestRequestReply);
+				BankInterestRequest bankInterestRequest = (BankInterestRequest) receivedObject;
+				addRequestToList(bankInterestRequest, message.getJMSCorrelationID());
 			}
 			else
 			{
-				//todo throw new exception
+				LOGGER.log(Level.WARNING, StaticNames.LOGGER_WARNING_INVALID_OBJECT_RECEIVED);
 			}
 		}
 		catch (JMSException e)
 		{
-			e.printStackTrace();
+			LOGGER.log(Level.WARNING, StaticNames.LOGGER_ERROR_RECEIVING_MESSAGE, e);
 		}
+	}
+
+	private void addRequestToList(BankInterestRequest bankInterestRequest, String correlationID)
+	{
+		RequestReply<BankInterestRequest, BankInterestReply> bankInterestRequestReply = new RequestReply<>(bankInterestRequest, null);
+		idByRequest.put(bankInterestRequest, correlationID);
+		listModel.add(listModel.getSize(), bankInterestRequestReply);
 	}
 }

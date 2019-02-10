@@ -5,7 +5,6 @@ import messaging.requestreply.RequestReply;
 import model.StaticNames;
 import model.loan.LoanReply;
 import model.loan.LoanRequest;
-import model.loan.LoanRequestReply;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -14,12 +13,14 @@ import javax.naming.NamingException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class LoanClientFrame extends JFrame {
+
+	private static final Logger LOGGER = Logger.getLogger(LoanClientFrame.class.getName());
 
 	/**
 	 * 
@@ -35,12 +36,12 @@ public class LoanClientFrame extends JFrame {
 	private JLabel lblNewLabel_1;
 	private JTextField tfTime;
 
-	private Map<RequestReply, String> idByRequestReply = new HashMap<>();
+	private Map<String, LoanRequest> requestById = new HashMap<>();
 
 	/**
 	 * Create the frame.
 	 */
-	public LoanClientFrame() throws NamingException
+	private LoanClientFrame() throws NamingException
 	{
 		setTitle("Loan Client");
 		
@@ -108,16 +109,14 @@ public class LoanClientFrame extends JFrame {
 		tfTime.setColumns(10);
 		
 		JButton btnQueue = new JButton("send loan request");
-		btnQueue.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				int ssn = Integer.parseInt(tfSSN.getText());
-				int amount = Integer.parseInt(tfAmount.getText());
-				int time = Integer.parseInt(tfTime.getText());				
-				
-				LoanRequest request = new LoanRequest(ssn,amount,time);
-				listModel.addElement( new RequestReply<LoanRequest,LoanReply>(request, null));	
-				sendRequest(request);
-			}
+		btnQueue.addActionListener(arg0 -> {
+			int ssn = Integer.parseInt(tfSSN.getText());
+			int amount = Integer.parseInt(tfAmount.getText());
+			int time = Integer.parseInt(tfTime.getText());
+
+			LoanRequest request = new LoanRequest(ssn,amount,time);
+			listModel.addElement(new RequestReply<>(request, null));
+			sendRequest(request);
 		});
 		GridBagConstraints gbc_btnQueue = new GridBagConstraints();
 		gbc_btnQueue.insets = new Insets(0, 0, 5, 5);
@@ -134,7 +133,7 @@ public class LoanClientFrame extends JFrame {
 		gbc_scrollPane.gridy = 4;
 		contentPane.add(scrollPane, gbc_scrollPane);
 		
-		requestReplyList = new JList<RequestReply<LoanRequest,LoanReply>>(listModel);
+		requestReplyList = new JList<>(listModel);
 		scrollPane.setViewportView(requestReplyList);
 
 		prepareReceiveMessage();
@@ -152,31 +151,46 @@ public class LoanClientFrame extends JFrame {
 		try
 		{
 			Object receivedObject = objectMessage.getObject();
-			if (receivedObject instanceof LoanRequestReply)
+			if (receivedObject instanceof LoanReply)
 			{
-				LoanRequestReply loanRequestReply = (LoanRequestReply) receivedObject;
-				listModel.add(listModel.getSize(), loanRequestReply);
+				LoanReply loanReply = (LoanReply) receivedObject;
+				LoanRequest loanRequest = requestById.get(message.getJMSCorrelationID());
+				if (loanRequest != null)
+				{
+					setRequestReply(loanRequest, loanReply);
+				}
+			}
+			else
+			{
+				LOGGER.log(Level.WARNING, StaticNames.LOGGER_WARNING_INVALID_OBJECT_RECEIVED);
 			}
 		}
 		catch (JMSException e)
 		{
-			e.printStackTrace();
+			LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_RECEIVING_MESSAGE, e);
+		}
+	}
+
+	private void setRequestReply(LoanRequest loanRequest, LoanReply loanReply)
+	{
+		RequestReply<LoanRequest, LoanReply> requestReply = getRequestReply(loanRequest);
+		if (requestReply != null)
+		{
+			requestReply.setReply(loanReply);
 		}
 	}
 
 	private void sendRequest(LoanRequest loanRequest)
 	{
-		LoanRequestReply clientRequestReply = new LoanRequestReply(loanRequest, null);
-
 		try
 		{
 			MessageSender messageSender = new MessageSender(StaticNames.BROKER_FROM_CLIENT_DESTINATION);
-			String messageId = messageSender.SendMessage(clientRequestReply);
-			idByRequestReply.put(clientRequestReply, messageId);
+			String id = messageSender.SendMessage(loanRequest);
+			requestById.put(id, loanRequest);
 		}
 		catch (Exception e)
 		{
-			e.printStackTrace();
+			LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_RECEIVING_MESSAGE, e);
 		}
 	}
 	
@@ -199,15 +213,12 @@ public class LoanClientFrame extends JFrame {
    }
 	
 	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					LoanClientFrame frame = new LoanClientFrame();
-
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+		EventQueue.invokeLater(() -> {
+			try {
+				LoanClientFrame frame = new LoanClientFrame();
+				frame.setVisible(true);
+			} catch (Exception e) {
+				LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_APPLICATION_EXECUTION, e);
 			}
 		});
 	}

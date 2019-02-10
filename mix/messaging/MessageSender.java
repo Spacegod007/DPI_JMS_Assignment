@@ -5,6 +5,7 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.naming.NamingException;
 import java.io.Serializable;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public class MessageSender extends BaseMessageSendReceiver
@@ -16,7 +17,7 @@ public class MessageSender extends BaseMessageSendReceiver
         super(destination);
     }
 
-    public String SendMessage(Serializable serializableObject)
+    public String SendMessage(Serializable serializableObject, String correlationID)
     {
         try {
             buildConnection();
@@ -24,13 +25,21 @@ public class MessageSender extends BaseMessageSendReceiver
 
             Message message = session.createObjectMessage(serializableObject);
 
+            message.setJMSCorrelationID(correlationID);
+
             producer.send(message);
-            return message.getJMSMessageID();
+            return correlationID;
         }
         catch (JMSException e)
         {
             LOGGER.log(Level.SEVERE, "Something went wrong while sending the message", e);
-            return null;
         }
+        return null;
+    }
+
+    public String SendMessage(Serializable serializableObject)
+    {
+        String uuid = UUID.randomUUID().toString();
+        return SendMessage(serializableObject, uuid);
     }
 }

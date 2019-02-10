@@ -25,30 +25,34 @@ class BaseMessageSendReceiver
     BaseMessageSendReceiver(String destination) throws NamingException
     {
         destinationString = destination;
-        Properties properties = new Properties();
-        properties.setProperty(Context.INITIAL_CONTEXT_FACTORY, "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
-        properties.setProperty(Context.PROVIDER_URL, "tcp://localhost:61616");
-        properties.put(("queue." + destination), destination);
+        Properties properties = buildPropertySet();
 
         jndiContext = new InitialContext(properties);
         factory = (ConnectionFactory) jndiContext.lookup("ConnectionFactory");
 
         ((ActiveMQConnectionFactory) factory).setTrustAllPackages(true);
+    }
 
+    private Properties buildPropertySet()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(Context.INITIAL_CONTEXT_FACTORY, "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
+        properties.setProperty(Context.PROVIDER_URL, "tcp://localhost:61616");
+        properties.put(("queue." + destinationString), destinationString);
 
+        return properties;
     }
 
     void buildConnection() throws JMSException
     {
         connection = factory.createConnection();
         session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        try {
+        try
+        {
             destination = (Destination) jndiContext.lookup(destinationString);
-        }
-        catch (NamingException e)
+        } catch (NamingException e)
         {
             LOGGER.log(Level.SEVERE, "Destination lookup failed", e);
         }
-
     }
 }

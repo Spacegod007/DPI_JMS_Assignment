@@ -12,7 +12,7 @@ import java.io.Serializable;
  * @param <REQUEST>
  * @param <REPLY>
  */
-public class RequestReply<REQUEST,REPLY> implements Serializable
+public class RequestReply<REQUEST,REPLY>
 {
 	
 	private REQUEST request;
@@ -43,5 +43,4 @@ public class RequestReply<REQUEST,REPLY> implements Serializable
 	public String toString() {
 	   return request.toString() + "  --->  " + ((reply!=null)?reply.toString():"waiting for reply...");
 	}
-	
 }

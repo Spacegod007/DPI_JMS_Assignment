@@ -2,14 +2,11 @@ package loanbroker;
 
 import messaging.MessageReceiver;
 import messaging.MessageSender;
-import messaging.requestreply.RequestReply;
 import model.StaticNames;
 import model.bank.BankInterestReply;
 import model.bank.BankInterestRequest;
-import model.bank.BankInterestRequestReply;
 import model.loan.LoanReply;
 import model.loan.LoanRequest;
-import model.loan.LoanRequestReply;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -20,28 +17,30 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class LoanBrokerFrame extends JFrame {
+
+	private static final Logger LOGGER = Logger.getLogger(LoanBrokerFrame.class.getName());
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
-	private DefaultListModel<JListLine> listModel = new DefaultListModel<JListLine>();
+	private DefaultListModel<JListLine> listModel = new DefaultListModel<>();
 	private JList<JListLine> list;
 
-	private Map<RequestReply, String> idByRequestReply = new HashMap<>();
+	private Map<String, LoanRequest> loanRequestById = new HashMap<>();
 
 	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					LoanBrokerFrame frame = new LoanBrokerFrame();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+		EventQueue.invokeLater(() -> {
+			try {
+				LoanBrokerFrame frame = new LoanBrokerFrame();
+				frame.setVisible(true);
+			} catch (Exception e) {
+				LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_APPLICATION_EXECUTION, e);
 			}
 		});
 	}
@@ -49,7 +48,7 @@ public class LoanBrokerFrame extends JFrame {
 	/**
 	 * Create the frame.
 	 */
-	public LoanBrokerFrame() throws NamingException
+	private LoanBrokerFrame() throws NamingException
 	{
 		setTitle("Loan Broker");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -73,7 +72,7 @@ public class LoanBrokerFrame extends JFrame {
 		gbc_scrollPane.gridy = 0;
 		contentPane.add(scrollPane, gbc_scrollPane);
 		
-		list = new JList<JListLine>(listModel);
+		list = new JList<>(listModel);
 		scrollPane.setViewportView(list);
 
 		prepareMessageListener();
@@ -92,38 +91,40 @@ public class LoanBrokerFrame extends JFrame {
 		ObjectMessage objectMessage = (ObjectMessage) message;
 		try {
 			Object receivedObject = objectMessage.getObject();
-			if (receivedObject instanceof LoanRequestReply)
+			String correlationID = message.getJMSCorrelationID();
+
+			if (receivedObject instanceof LoanRequest)
 			{
-				LoanRequestReply loanRequestReply = (LoanRequestReply) receivedObject;
-				LoanRequest loanRequest = loanRequestReply.getRequest();
+				LoanRequest loanRequest = (LoanRequest) receivedObject;
+				loanRequestById.put(correlationID, loanRequest);
+
 				add(loanRequest);
 
-				SendBankInterestRequest(loanRequest);
+				SendBankInterestRequest(loanRequest, correlationID);
 			}
 			else
 			{
-				//todo throw new Exception
+				LOGGER.log(Level.WARNING, StaticNames.LOGGER_WARNING_INVALID_OBJECT_RECEIVED);
 			}
 		}
 		catch (JMSException e)
 		{
-			e.printStackTrace();
+			LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_RECEIVING_MESSAGE, e);
 		}
 	}
 
-	private void SendBankInterestRequest(LoanRequest loanRequest)
+	private void SendBankInterestRequest(LoanRequest loanRequest, String correlationID)
 	{
-		BankInterestRequest bankInterestRequest = new BankInterestRequest(loanRequest.getAmount(), loanRequest.getTime());
-		BankInterestRequestReply bankInterestRequestReply = new BankInterestRequestReply(bankInterestRequest, null);
+		BankInterestRequest bankInterestRequest = bankInterestRequestFromLoanRequest(loanRequest);
 		try
 		{
 			MessageSender messageSender = new MessageSender(StaticNames.ABN_AMRO_BANK_DESTINATION);
-			String messageId = messageSender.SendMessage(bankInterestRequestReply);
-			idByRequestReply.put(bankInterestRequestReply, messageId);
+			add(loanRequest, bankInterestRequest);
+			messageSender.SendMessage(bankInterestRequest, correlationID);
 		}
 		catch (NamingException e)
 		{
-			e.printStackTrace();
+			LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_SENDING_MESSAGE);
 		}
 	}
 
@@ -133,35 +134,37 @@ public class LoanBrokerFrame extends JFrame {
 		try
 		{
 			Object receivedObject = objectMessage.getObject();
-			if (receivedObject instanceof BankInterestRequestReply)
+			if (receivedObject instanceof BankInterestReply)
 			{
-				BankInterestRequestReply bankInterestRequestReply = (BankInterestRequestReply) receivedObject;
-				bankInterestRequestReply.getReply();
-				//todo find client request linked to this bank reply
-				//todo construct client reply
-				//todo send message to client
+				BankInterestReply bankInterestReply = (BankInterestReply) receivedObject;
+				String correlationID = message.getJMSCorrelationID();
+				LoanRequest loanRequest = loanRequestById.get(correlationID);
+				add(loanRequest, bankInterestReply);
+				sendClientLoanReply(bankInterestReply, correlationID);
 			}
 			else
 			{
-				//todo throw new Exception
+				LOGGER.log(Level.WARNING, StaticNames.LOGGER_WARNING_INVALID_OBJECT_RECEIVED);
 			}
 		}
 		catch (JMSException e)
 		{
-			e.printStackTrace();
+			LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_RECEIVING_MESSAGE, e);
 		}
 	}
 
-	private void sendClientLoanReply(LoanRequestReply loanRequestReply)
+	private void sendClientLoanReply(BankInterestReply bankInterestReply, String correlationID)
 	{
+
+		LoanReply loanReply = loanReplyFromBankInterestReply(bankInterestReply);
 		try
 		{
 			MessageSender messageSender = new MessageSender(StaticNames.CLIENT_DESTINATION);
-			messageSender.SendMessage(loanRequestReply);
+			messageSender.SendMessage(loanReply, correlationID);
 		}
 		catch (NamingException e)
 		{
-			e.printStackTrace();
+			LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_SENDING_MESSAGE);
 		}
 
 	}
@@ -178,12 +181,12 @@ public class LoanBrokerFrame extends JFrame {
 	     return null;
 	}
 	
-	public void add(LoanRequest loanRequest){		
+	private void add(LoanRequest loanRequest){
 		listModel.addElement(new JListLine(loanRequest));		
 	}
 	
 
-	public void add(LoanRequest loanRequest,BankInterestRequest bankRequest){
+	private void add(LoanRequest loanRequest, BankInterestRequest bankRequest){
 		JListLine rr = getRequestReply(loanRequest);
 		if (rr!= null && bankRequest != null){
 			rr.setBankRequest(bankRequest);
@@ -191,11 +194,19 @@ public class LoanBrokerFrame extends JFrame {
 		}		
 	}
 	
-	public void add(LoanRequest loanRequest, BankInterestReply bankReply){
+	private void add(LoanRequest loanRequest, BankInterestReply bankReply){
 		JListLine rr = getRequestReply(loanRequest);
 		if (rr!= null && bankReply != null){
 			rr.setBankReply(bankReply);
             list.repaint();
 		}		
+	}
+
+	private BankInterestRequest bankInterestRequestFromLoanRequest(LoanRequest loanRequest) {
+		return new BankInterestRequest(loanRequest.getAmount(), loanRequest.getTime());
+	}
+
+	private LoanReply loanReplyFromBankInterestReply(BankInterestReply bankInterestReply) {
+		return new LoanReply(bankInterestReply.getInterest(), bankInterestReply.getQuoteId());
 	}
 }

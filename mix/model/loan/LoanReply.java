@@ -10,8 +10,8 @@ import java.io.Serializable;
 public class LoanReply implements Serializable
 {
 
-        private double interest; // the interest that the bank offers
-        private String bankID; // the unique quote identification
+    private double interest; // the interest that the bank offers
+    private String bankID; // the unique quote identification
 
     public LoanReply() {
         super();
