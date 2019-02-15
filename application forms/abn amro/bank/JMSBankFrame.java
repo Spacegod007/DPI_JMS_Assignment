@@ -1,20 +1,14 @@
 package bank;
-import messaging.MessageReceiver;
-import messaging.MessageSender;
+import bank.gateway.LoanBrokerGateway;
 import messaging.requestreply.RequestReply;
 import model.StaticNames;
 import model.bank.BankInterestReply;
 import model.bank.BankInterestRequest;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.ObjectMessage;
 import javax.naming.NamingException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,7 +21,7 @@ public class JMSBankFrame extends JFrame {
 	private JTextField tfReply;
 	private DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>> listModel = new DefaultListModel<>();
 
-	private Map<BankInterestRequest, String> idByRequest = new HashMap<>();
+	private LoanBrokerGateway brokerGateway;
 	
 	/**
 	 * Launches the application.
@@ -48,8 +42,10 @@ public class JMSBankFrame extends JFrame {
 	 */
 	private JMSBankFrame() throws NamingException
 	{
+		brokerGateway = new LoanBrokerGateway();
 		LoadFrame();
-		prepareReceive();
+
+		brokerGateway.AddListener(this::addRequestToList);
 	}
 
 	/**
@@ -108,7 +104,7 @@ public class JMSBankFrame extends JFrame {
 			if (requestReply != null){
 				requestReply.setReply(reply);
 				list.repaint();
-				sendMessage(requestReply.getRequest(), reply);
+				brokerGateway.SendBankInterestReply(requestReply.getRequest(), reply);
 			}
 		});
 		GridBagConstraints gbc_btnSendReply = new GridBagConstraints();
@@ -119,63 +115,6 @@ public class JMSBankFrame extends JFrame {
 	}
 
 	/**
-	 * Sends a message to the broker which is a reply to a specified request
-	 * @param bankInterestRequest the specified request which is replied to
-	 * @param bankInterestReply the reply of the bank
-	 */
-	private void sendMessage(BankInterestRequest bankInterestRequest, BankInterestReply bankInterestReply)
-	{
-		String correlationID = idByRequest.get(bankInterestRequest);
-
-		try
-		{
-			MessageSender messageSender = new MessageSender(StaticNames.BROKER_FROM_BANK_DESTINATION);
-			messageSender.SendMessage(bankInterestReply, correlationID);
-			idByRequest.remove(bankInterestRequest);
-		}
-		catch (NamingException e)
-		{
-			LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_SENDING_MESSAGE, e);
-		}
-	}
-
-	/**
-	 * Prepares the server-side to receive messages
-	 * @throws NamingException
-	 */
-	private void prepareReceive() throws NamingException
-	{
-		MessageReceiver messageReceiver = new MessageReceiver(StaticNames.ABN_AMRO_BANK_DESTINATION);
-		messageReceiver.PrepareReceiveMessage(this::messageReceived);
-	}
-
-	/**
-	 * Gets fired when a message is received
-	 * @param message the received message
-	 */
-	private void messageReceived(Message message)
-	{
-		ObjectMessage objectMessage = (ObjectMessage) message;
-		try
-		{
-			Object receivedObject = objectMessage.getObject();
-			if (receivedObject instanceof BankInterestRequest)
-			{
-				BankInterestRequest bankInterestRequest = (BankInterestRequest) receivedObject;
-				addRequestToList(bankInterestRequest, message.getJMSCorrelationID());
-			}
-			else
-			{
-				LOGGER.log(Level.WARNING, StaticNames.LOGGER_WARNING_INVALID_OBJECT_RECEIVED);
-			}
-		}
-		catch (JMSException e)
-		{
-			LOGGER.log(Level.WARNING, StaticNames.LOGGER_ERROR_RECEIVING_MESSAGE, e);
-		}
-	}
-
-	/**
 	 * Adds a request to the list of requests
 	 * @param bankInterestRequest The request to get added
 	 * @param correlationID The Id which refers to this request over multiple systems
@@ -183,7 +122,6 @@ public class JMSBankFrame extends JFrame {
 	private void addRequestToList(BankInterestRequest bankInterestRequest, String correlationID)
 	{
 		RequestReply<BankInterestRequest, BankInterestReply> bankInterestRequestReply = new RequestReply<>(bankInterestRequest, null);
-		idByRequest.put(bankInterestRequest, correlationID);
 		listModel.add(listModel.getSize(), bankInterestRequestReply);
 	}
 }

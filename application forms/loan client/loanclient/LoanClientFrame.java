@@ -1,20 +1,13 @@
 package loanclient;
-import messaging.MessageReceiver;
-import messaging.MessageSender;
+import loanclient.gateway.LoanBrokerGateway;
 import messaging.requestreply.RequestReply;
 import model.StaticNames;
 import model.loan.LoanReply;
 import model.loan.LoanRequest;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.ObjectMessage;
-import javax.naming.NamingException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,15 +26,17 @@ public class LoanClientFrame extends JFrame {
 	private JLabel lblNewLabel_1;
 	private JTextField tfTime;
 
-	private Map<String, LoanRequest> requestById = new HashMap<>();
+	private LoanBrokerGateway brokerGateway;
 
 	/**
 	 * Constructs the class
 	 */
-	private LoanClientFrame() throws NamingException
+	private LoanClientFrame()
 	{
+		brokerGateway = new LoanBrokerGateway();
 		LoadFrame();
-		prepareReceiveMessage();
+
+		brokerGateway.AddListener(this::BankInterestReplyReceived);
 	}
 
 	/**
@@ -122,7 +117,7 @@ public class LoanClientFrame extends JFrame {
 
 			LoanRequest request = new LoanRequest(ssn,amount,time);
 			listModel.addElement(new RequestReply<>(request, null));
-			sendRequest(request);
+			brokerGateway.ApplyForLoan(request);
 		});
 		GridBagConstraints gbc_btnQueue = new GridBagConstraints();
 		gbc_btnQueue.insets = new Insets(0, 0, 5, 5);
@@ -143,47 +138,29 @@ public class LoanClientFrame extends JFrame {
 		scrollPane.setViewportView(requestReplyList);
 	}
 
-	/**
-	 * Prepares the client to receive messages
-	 * @throws NamingException
-	 */
-	private void prepareReceiveMessage() throws NamingException
+	private void BankInterestReplyReceived(LoanReply loanReply, String id)
 	{
-		MessageReceiver messageReceiver = new MessageReceiver(StaticNames.CLIENT_DESTINATION);
-		messageReceiver.PrepareReceiveMessage(this::messageReceived);
+		LoanRequest loanRequest = brokerGateway.GetLoanRequestById(id);
+		setRequestReply(loanRequest, loanReply);
 	}
 
 	/**
-	 * Gets fired when a message is received
-	 * @param message the received message
+	 * This method returns the RequestReply line that belongs to the request from requestReplyList (JList).
+	 * You can call this method when an reply arrives in order to add this reply to the right request in requestReplyList.
+	 * @param request
+	 * @return
 	 */
-	private void messageReceived(Message message)
-	{
-		ObjectMessage objectMessage = (ObjectMessage) message;
-		try
-		{
-			Object receivedObject = objectMessage.getObject();
-			if (receivedObject instanceof LoanReply)
-			{
-				LoanReply loanReply = (LoanReply) receivedObject;
-				String correlationID = message.getJMSCorrelationID();
-				LoanRequest loanRequest = requestById.get(correlationID);
+   private RequestReply<LoanRequest,LoanReply> getRequestReply(LoanRequest request){
 
-				if (loanRequest != null && setRequestReply(loanRequest, loanReply))
-				{
-					requestById.remove(correlationID);
-				}
-			}
-			else
-			{
-				LOGGER.log(Level.WARNING, StaticNames.LOGGER_WARNING_INVALID_OBJECT_RECEIVED);
-			}
-		}
-		catch (JMSException e)
-		{
-			LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_RECEIVING_MESSAGE, e);
-		}
-	}
+     for (int i = 0; i < listModel.getSize(); i++){
+    	 RequestReply<LoanRequest,LoanReply> requestReply = listModel.get(i);
+    	 if (requestReply.getRequest() == request){
+    		 return requestReply;
+    	 }
+     }
+
+     return null;
+   }
 
 	/**
 	 * Sets the reply to a request
@@ -201,42 +178,6 @@ public class LoanClientFrame extends JFrame {
 		}
 		return false;
 	}
-
-	/**
-	 * Sends a request of to loan to the broker
-	 * @param loanRequest The request to send
-	 */
-	private void sendRequest(LoanRequest loanRequest)
-	{
-		try
-		{
-			MessageSender messageSender = new MessageSender(StaticNames.BROKER_FROM_CLIENT_DESTINATION);
-			String id = messageSender.SendMessage(loanRequest);
-			requestById.put(id, loanRequest);
-		}
-		catch (Exception e)
-		{
-			LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_RECEIVING_MESSAGE, e);
-		}
-	}
-	
-	/**
-	 * This method returns the RequestReply line that belongs to the request from requestReplyList (JList). 
-	 * You can call this method when an reply arrives in order to add this reply to the right request in requestReplyList.
-	 * @param request
-	 * @return
-	 */
-   private RequestReply<LoanRequest,LoanReply> getRequestReply(LoanRequest request){    
-     
-     for (int i = 0; i < listModel.getSize(); i++){
-    	 RequestReply<LoanRequest,LoanReply> requestReply = listModel.get(i);
-    	 if (requestReply.getRequest() == request){
-    		 return requestReply;
-    	 }
-     }
-     
-     return null;
-   }
 
 	/**
 	 * Launches the application

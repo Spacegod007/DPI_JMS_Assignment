@@ -10,7 +10,6 @@ import java.io.Serializable;
  */
 public class LoanRequest implements Serializable
 {
-
     private int ssn; // unique client number.
     private int amount; // the ammount to borrow
     private int time; // the time-span of the loan
