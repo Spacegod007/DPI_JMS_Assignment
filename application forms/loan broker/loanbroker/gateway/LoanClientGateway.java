@@ -20,6 +20,9 @@ public class LoanClientGateway extends GatewayEventContainer<LoanRequestReceived
     private MessageReceiver messageReceiver;
     private LoanSerializer loanSerializer;
 
+    /**
+     * Constructs the object
+     */
     public LoanClientGateway()
     {
         super();
@@ -30,6 +33,10 @@ public class LoanClientGateway extends GatewayEventContainer<LoanRequestReceived
         messageReceiver.PrepareReceiveMessage(this::messageReceived);
     }
 
+    /**
+     * Gets triggered when a message is received
+     * @param message The received message
+     */
     private void messageReceived(Message message)
     {
         ObjectMessage objectMessage = (ObjectMessage) message;
@@ -46,6 +53,11 @@ public class LoanClientGateway extends GatewayEventContainer<LoanRequestReceived
         }
     }
 
+    /**
+     * Sends a LoanReply
+     * @param loanReply The reply to send
+     * @param correlationId The Id used to refer to this message
+     */
     public void SendLoanReply(LoanReply loanReply, String correlationId)
     {
         String serializedReply = loanSerializer.SerializeReply(loanReply);

@@ -4,10 +4,16 @@ import com.owlike.genson.Genson;
 import model.loan.LoanReply;
 import model.loan.LoanRequest;
 
+/**
+ * Serializes Loan requests and reply
+ */
 public class LoanSerializer implements IRequestReplySerializer<LoanRequest, LoanReply>
 {
     private Genson genson;
 
+    /**
+     * Constructs the object
+     */
     public LoanSerializer()
     {
         genson = new Genson();

@@ -24,6 +24,9 @@ public class LoanBrokerGateway extends GatewayEventContainer<BankRequestReceived
 
     private Map<BankInterestRequest, String> idByRequest;
 
+    /**
+     * Constructs the object
+     */
     public LoanBrokerGateway()
     {
         idByRequest = new HashMap<>();
@@ -35,6 +38,10 @@ public class LoanBrokerGateway extends GatewayEventContainer<BankRequestReceived
         messageReceiver.PrepareReceiveMessage(this::messageReceived);
     }
 
+    /**
+     * Triggers when a message is received
+     * @param message The received message
+     */
     private void messageReceived(Message message)
     {
         ObjectMessage receivedMessage = (ObjectMessage) message;
@@ -52,6 +59,11 @@ public class LoanBrokerGateway extends GatewayEventContainer<BankRequestReceived
         }
     }
 
+    /**
+     * Sends an BankInterestReply which is linked to a request
+     * @param request The request to which the reply is linked
+     * @param reply The reply to send
+     */
     public void SendBankInterestReply(BankInterestRequest request, BankInterestReply reply)
     {
         String id = idByRequest.get(request);

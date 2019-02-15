@@ -1,20 +1,14 @@
 package bank;
 import bank.gateway.LoanBrokerGateway;
 import messaging.requestreply.RequestReply;
-import model.StaticNames;
 import model.bank.BankInterestReply;
 import model.bank.BankInterestRequest;
 
-import javax.naming.NamingException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class JMSBankFrame extends JFrame {
-
-	private static final Logger LOGGER = Logger.getLogger(JMSBankFrame.class.getName());
 
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
@@ -22,25 +16,11 @@ public class JMSBankFrame extends JFrame {
 	private DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>> listModel = new DefaultListModel<>();
 
 	private LoanBrokerGateway brokerGateway;
-	
-	/**
-	 * Launches the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(() -> {
-			try {
-				JMSBankFrame frame = new JMSBankFrame();
-				frame.setVisible(true);
-			} catch (Exception e) {
-				LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_APPLICATION_EXECUTION, e);
-			}
-		});
-	}
 
 	/**
 	 * Constructs the class
 	 */
-	private JMSBankFrame() throws NamingException
+	JMSBankFrame()
 	{
 		brokerGateway = new LoanBrokerGateway();
 		LoadFrame();

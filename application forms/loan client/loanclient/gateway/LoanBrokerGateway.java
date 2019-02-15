@@ -24,6 +24,9 @@ public class LoanBrokerGateway extends GatewayEventContainer<LoanReplyReceivedEv
 
     private Map<String, LoanRequest> requestById;
 
+    /**
+     * Constructs the object
+     */
     public LoanBrokerGateway()
     {
         requestById = new HashMap<>();
@@ -34,6 +37,10 @@ public class LoanBrokerGateway extends GatewayEventContainer<LoanReplyReceivedEv
         messageReceiver.PrepareReceiveMessage(this::messageReceived);
     }
 
+    /**
+     * Sends a request
+     * @param request the request to send
+     */
     public void ApplyForLoan(LoanRequest request)
     {
         String serializedRequest = loanSerializer.SerializeRequest(request);
@@ -41,11 +48,20 @@ public class LoanBrokerGateway extends GatewayEventContainer<LoanReplyReceivedEv
         requestById.put(correlationId, request);
     }
 
+    /**
+     * Gets the request by the id
+     * @param id The id to find the request by
+     * @return Returns the loanrequest
+     */
     public LoanRequest GetLoanRequestById(String id)
     {
         return requestById.get(id);
     }
 
+    /**
+     * Gets triggered when a message is received
+     * @param message The received message
+     */
     private void messageReceived(Message message)
     {
         ObjectMessage objectMessage = (ObjectMessage) message;

@@ -1,7 +1,6 @@
 package loanbroker;
 
 import loanbroker.gateway.MainGateway;
-import model.StaticNames;
 import model.bank.BankInterestReply;
 import model.bank.BankInterestRequest;
 import model.loan.LoanRequest;
@@ -9,16 +8,9 @@ import model.loan.LoanRequest;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class LoanBrokerFrame extends JFrame {
 
-	private static final Logger LOGGER = Logger.getLogger(LoanBrokerFrame.class.getName());
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
 	private DefaultListModel<JListLine> listModel = new DefaultListModel<>();
@@ -27,23 +19,9 @@ public class LoanBrokerFrame extends JFrame {
 	private MainGateway mainGateway;
 
 	/**
-	 * Loaunches the application
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(() -> {
-			try {
-				LoanBrokerFrame frame = new LoanBrokerFrame();
-				frame.setVisible(true);
-			} catch (Exception e) {
-				LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_APPLICATION_EXECUTION, e);
-			}
-		});
-	}
-
-	/**
 	 * Constructs the class
 	 */
-	private LoanBrokerFrame()
+	LoanBrokerFrame()
 	{
 		LoadFrame();
 		mainGateway = new MainGateway();

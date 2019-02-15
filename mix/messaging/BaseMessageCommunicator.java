@@ -1,5 +1,6 @@
 package messaging;
 
+import model.StaticNames;
 import org.apache.activemq.ActiveMQConnectionFactory;
 
 import javax.jms.*;
@@ -7,6 +8,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public abstract class BaseMessageCommunicator
@@ -16,19 +18,29 @@ public abstract class BaseMessageCommunicator
     private String destinationChannelName;
     private String replyDestinationChannelName;
 
-    Context jndiContext;
-    ConnectionFactory factory;
+    private Context jndiContext;
+    private ConnectionFactory factory;
+
     Connection connection;
     Session session;
 
     Destination destination;
 
-    public BaseMessageCommunicator(String destination)
+    /**
+     * Constructs the base communicator
+     * @param destination The destination to send/listen
+     */
+    BaseMessageCommunicator(String destination)
     {
         this(destination, "");
     }
 
-    public BaseMessageCommunicator(String destination, String replyDestination)
+    /**
+     * Constructs the base communicator
+     * @param destination The destination to send/listen
+     * @param replyDestination A reply destination if a reply message is expected
+     */
+    BaseMessageCommunicator(String destination, String replyDestination)
     {
         destinationChannelName = destination;
         replyDestinationChannelName = replyDestination;
@@ -41,10 +53,14 @@ public abstract class BaseMessageCommunicator
         }
         catch (NamingException e)
         {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_BUILDING_CONNECTION);
         }
     }
 
+    /**
+     * Builds the set of properties
+     * @return The set of build properties containing the required properties
+     */
     private Properties buildPropertySet()
     {
         Properties properties = new Properties();
@@ -60,7 +76,10 @@ public abstract class BaseMessageCommunicator
         return properties;
     }
 
-    public void BuildConnection()
+    /**
+     * Builds the requirements for a connection
+     */
+    void BuildConnection()
     {
         try
         {
@@ -69,17 +88,17 @@ public abstract class BaseMessageCommunicator
 
             destination = (Destination) jndiContext.lookup(destinationChannelName);
         }
-        catch (NamingException e)
+        catch (JMSException | NamingException e)
         {
-            e.printStackTrace();
-        }
-        catch (JMSException e)
-        {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_BUILDING_CONNECTION, e);
         }
     }
 
-    public Destination GetReplyDestination()
+    /**
+     * Get the reply destination if one has been set
+     * @return Returns the reply destination if one is present otherwise null
+     */
+    Destination GetReplyDestination()
     {
         if (!replyDestinationChannelName.isEmpty())
         {

@@ -1,5 +1,10 @@
 package model.serialize;
 
+/**
+ * An interface to serialize both a request and a reply
+ * @param <REQ> The request type to serialize
+ * @param <REP> The reply type to serialize
+ */
 public interface IRequestReplySerializer<REQ, REP>
 {
     String SerializeRequest(REQ request);

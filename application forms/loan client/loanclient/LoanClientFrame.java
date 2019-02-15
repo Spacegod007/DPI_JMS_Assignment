@@ -1,19 +1,14 @@
 package loanclient;
 import loanclient.gateway.LoanBrokerGateway;
 import messaging.requestreply.RequestReply;
-import model.StaticNames;
 import model.loan.LoanReply;
 import model.loan.LoanRequest;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class LoanClientFrame extends JFrame {
-
-	private static final Logger LOGGER = Logger.getLogger(LoanClientFrame.class.getName());
 
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
@@ -31,7 +26,7 @@ public class LoanClientFrame extends JFrame {
 	/**
 	 * Constructs the class
 	 */
-	private LoanClientFrame()
+	LoanClientFrame()
 	{
 		brokerGateway = new LoanBrokerGateway();
 		LoadFrame();
@@ -138,6 +133,11 @@ public class LoanClientFrame extends JFrame {
 		scrollPane.setViewportView(requestReplyList);
 	}
 
+	/**
+	 * Gets triggered when a BankInterestReply is received
+	 * @param loanReply The received reply
+	 * @param id The id which was linked to the message
+	 */
 	private void BankInterestReplyReceived(LoanReply loanReply, String id)
 	{
 		LoanRequest loanRequest = brokerGateway.GetLoanRequestById(id);
@@ -177,20 +177,5 @@ public class LoanClientFrame extends JFrame {
 			return true;
 		}
 		return false;
-	}
-
-	/**
-	 * Launches the application
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(() -> {
-			try {
-				LoanClientFrame frame = new LoanClientFrame();
-				frame.setVisible(true);
-			} catch (Exception e) {
-				LOGGER.log(Level.SEVERE, StaticNames.LOGGER_ERROR_APPLICATION_EXECUTION, e);
-			}
-		});
 	}
 }

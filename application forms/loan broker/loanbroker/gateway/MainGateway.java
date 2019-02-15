@@ -18,6 +18,9 @@ public class MainGateway
     private Map<String, LoanRequest> loanRequestById;
     private Map<String, BankInterestRequest> bankInterestRequestById;
 
+    /**
+     * Constructs the object
+     */
     public MainGateway()
     {
         loanRequestById = new HashMap<>();
@@ -30,26 +33,49 @@ public class MainGateway
         AddBankReplyReceivedEventListener(this::bankReplyReceived);
     }
 
+    /**
+     * Adds a reply-listener to fire when a BankInterestReply is received
+     * @param listener The listener to add
+     */
     public void AddBankReplyReceivedEventListener(BankReplyReceivedEventListener listener)
     {
         bankGateway.AddListener(listener);
     }
 
+    /**
+     * Adds a request-listener to fire when a LoanRequest is received
+     * @param listener The listener to add
+     */
     public void AddLoanRequestReceivedEventListener(LoanRequestReceivedEventListener listener)
     {
         loanClientGateway.AddListener(listener);
     }
 
+    /**
+     * Gets a LoanRequest by the given Id
+     * @param id The id to find the Request by
+     * @return Returns a LoanRequest
+     */
     public LoanRequest GetLoanRequestById(String id)
     {
         return loanRequestById.get(id);
     }
 
+    /**
+     * Gets a BankInterestRequest by the given id
+     * @param id The id to find the Request by
+     * @return Returns a BankInterestRequest
+     */
     public BankInterestRequest GetBankInterestRequestById(String id)
     {
         return bankInterestRequestById.get(id);
     }
 
+    /**
+     * Gets fired when a LoanRequest is received
+     * @param request The received request
+     * @param correlationId The correlationId which was linked to the message
+     */
     private void loanRequestReceived(LoanRequest request, String correlationId)
     {
         BankInterestRequest bankInterestRequest = bankInterestRequestFromLoanRequest(request);
@@ -58,6 +84,11 @@ public class MainGateway
         bankGateway.SendBankInterestRequest(bankInterestRequest, correlationId);
     }
 
+    /**
+     * Gets fired when a BankInterestReply is received
+     * @param bankInterestReply The received reply
+     * @param correlationId The correlationId which was linked to the message
+     */
     private void bankReplyReceived(BankInterestReply bankInterestReply, String correlationId)
     {
         LoanReply loanReply = loanReplyFromBankInterestReply(bankInterestReply);

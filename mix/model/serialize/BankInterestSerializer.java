@@ -4,10 +4,16 @@ import com.owlike.genson.Genson;
 import model.bank.BankInterestReply;
 import model.bank.BankInterestRequest;
 
+/**
+ * Serializes BankInterest requests and replies
+ */
 public class BankInterestSerializer implements IRequestReplySerializer<BankInterestRequest, BankInterestReply>
 {
     private Genson genson;
 
+    /**
+     * Constructs the serializer
+     */
     public BankInterestSerializer()
     {
         genson = new Genson();

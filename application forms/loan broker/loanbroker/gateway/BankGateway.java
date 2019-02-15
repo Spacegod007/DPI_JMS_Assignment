@@ -24,6 +24,9 @@ public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventLis
 
     private Map<String, BankInterestRequest> bankInterestRequestById;
 
+    /**
+     * Constructs the object
+     */
     public BankGateway()
     {
         super();
@@ -32,10 +35,14 @@ public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventLis
         messageReceiver = new MessageReceiver(StaticNames.BROKER_FROM_BANK_DESTINATION);
         bankInterestSerializer = new BankInterestSerializer();
 
-        messageReceiver.PrepareReceiveMessage(this::messageArrived);
+        messageReceiver.PrepareReceiveMessage(this::messageReceived);
     }
 
-    private void messageArrived(Message message)
+    /**
+     * Gets triggered when a message is received
+     * @param message The received message
+     */
+    private void messageReceived(Message message)
     {
         ObjectMessage objectMessage = (ObjectMessage) message;
         try
@@ -50,6 +57,11 @@ public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventLis
         }
     }
 
+    /**
+     * Sends a BankInterestRequest
+     * @param request The request to send
+     * @param correlationId The The id to refer to this message in advance
+     */
     public void SendBankInterestRequest(BankInterestRequest request, String correlationId)
     {
         String serializedObject = bankInterestSerializer.SerializeRequest(request);
