@@ -142,6 +142,7 @@ public class LoanClientFrame extends JFrame {
 	{
 		LoanRequest loanRequest = brokerGateway.GetLoanRequestById(id);
 		setRequestReply(loanRequest, loanReply);
+		EventQueue.invokeLater(this::repaint);
 	}
 
 	/**
