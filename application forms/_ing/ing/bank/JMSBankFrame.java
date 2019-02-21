@@ -1,6 +1,7 @@
-package bank;
-import bank.gateway.LoanBrokerGateway;
+package ing.bank;
+import ing.bank.gateway.LoanBrokerGateway;
 import messaging.requestreply.RequestReply;
+import model.StaticNames;
 import model.bank.BankInterestReply;
 import model.bank.BankInterestRequest;
 
@@ -33,7 +34,7 @@ public class JMSBankFrame extends JFrame {
 	 */
 	private void LoadFrame()
 	{
-		setTitle("JMS Bank - ABN AMRO");
+		setTitle("JMS Bank - " + StaticNames.ING_NAME);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
 		contentPane = new JPanel();
@@ -80,7 +81,7 @@ public class JMSBankFrame extends JFrame {
 		btnSendReply.addActionListener(e -> {
 			RequestReply<BankInterestRequest, BankInterestReply> requestReply = list.getSelectedValue();
 			double interest = Double.parseDouble((tfReply.getText()));
-			BankInterestReply reply = new BankInterestReply(interest,"ABN AMRO");
+			BankInterestReply reply = new BankInterestReply(interest,StaticNames.ING_NAME);
 			if (requestReply != null){
 				requestReply.setReply(reply);
 				list.repaint();

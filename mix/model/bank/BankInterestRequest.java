@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 /**
  *
- * This class stores all information about an request from a bank to offer
+ * This class stores all information about an request from a abn_amro.bank to offer
  * a loan to a specific client.
  */
 public class BankInterestRequest implements Serializable

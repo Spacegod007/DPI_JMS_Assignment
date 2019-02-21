@@ -1,4 +1,4 @@
-package bank.event;
+package rabobank.bank.event;
 
 import event.IGatewayEventListener;
 import model.bank.BankInterestRequest;

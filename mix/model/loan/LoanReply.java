@@ -4,12 +4,12 @@ import java.io.Serializable;
 
 /**
  *
- * This class stores all information about a bank offer
+ * This class stores all information about a abn_amro.bank offer
  * as a response to a client loan request.
  */
 public class LoanReply implements Serializable
 {
-    private double interest; // the interest that the bank offers
+    private double interest; // the interest that the abn_amro.bank offers
     private String bankID; // the unique quote identification
 
     public LoanReply() {

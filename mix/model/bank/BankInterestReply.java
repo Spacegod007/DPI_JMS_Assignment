@@ -3,7 +3,7 @@ package model.bank;
 import java.io.Serializable;
 
 /**
- * This class stores information about the bank reply
+ * This class stores information about the abn_amro.bank reply
  *  to a loan request of the specific client
  * 
  */

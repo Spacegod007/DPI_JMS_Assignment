@@ -1,4 +1,4 @@
-package bank;
+package abn_amro.bank;
 
 import model.StaticNames;
 

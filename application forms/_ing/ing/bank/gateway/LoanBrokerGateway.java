@@ -1,7 +1,7 @@
-package bank.gateway;
+package ing.bank.gateway;
 
-import bank.event.BankRequestReceivedEventListener;
 import event.GatewayEventContainer;
+import ing.bank.event.BankRequestReceivedEventListener;
 import messaging.MessageReceiver;
 import messaging.MessageSender;
 import model.StaticNames;
@@ -32,7 +32,7 @@ public class LoanBrokerGateway extends GatewayEventContainer<BankRequestReceived
         idByRequest = new HashMap<>();
 
         messageSender = new MessageSender(StaticNames.BROKER_FROM_BANK_DESTINATION);
-        messageReceiver = new MessageReceiver(StaticNames.ABN_AMRO_BANK_DESTINATION);
+        messageReceiver = new MessageReceiver(StaticNames.ING_BANK_DESTINATION);
         bankInterestSerializer = new BankInterestSerializer();
 
         messageReceiver.PrepareReceiveMessage(this::messageReceived);
