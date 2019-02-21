@@ -14,6 +14,7 @@ import net.sourceforge.jeval.Evaluator;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.ObjectMessage;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +65,6 @@ public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventLis
             String serializedObject = (String) objectMessage.getObject();
             BankInterestReply bankInterestReply = bankInterestSerializer.DeSerializeReply(serializedObject);
             String correlationId = message.getJMSCorrelationID();
-            System.out.println("Message received from bank: " + correlationId);
             MessageCounter messageCounter = messageCounterById.get(correlationId);
             messageCounter.MessageReceived(bankInterestReply);
         }
@@ -109,10 +109,19 @@ public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventLis
                 messagesSend++;
             }
 
-            MessageCounter messageCounter = new MessageCounter(messagesSend, correlationId);
-            System.out.println("correlationId: " + correlationId + " messages requested " + messagesSend);
-            messageCounter.AddListener(this::RequiredMessagesReceived);
-            messageCounterById.put(correlationId, messageCounter);
+            if (messagesSend != 0)
+            {
+                MessageCounter messageCounter = new MessageCounter(messagesSend, correlationId);
+                messageCounter.AddListener(this::RequiredMessagesReceived);
+                messageCounterById.put(correlationId, messageCounter);
+            }
+            else
+            {
+                BankInterestReply noInterestedBankReply = new BankInterestReply(0, "No bank is interested");
+                List<BankInterestReply> replies = new ArrayList<>();
+                replies.add(noInterestedBankReply);
+                RequiredMessagesReceived(replies, correlationId);
+            }
         }
         catch (EvaluationException e)
         {
@@ -122,8 +131,6 @@ public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventLis
 
     private void RequiredMessagesReceived(List<BankInterestReply> bankInterestReplies, String correlationId)
     {
-        System.out.println("Enough messages received");
-
         BankInterestReply bestReply = bankInterestReplies.get(0);
 
         for (int i = 1; i < bankInterestReplies.size(); i++)

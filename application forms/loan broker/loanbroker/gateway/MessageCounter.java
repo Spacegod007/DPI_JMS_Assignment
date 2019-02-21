@@ -10,14 +10,15 @@ public class MessageCounter
 {
     private final int requiredMessages;
     private final String correlationId;
+
     private final List<BankInterestReply> replies;
 
     private List<RequiredMessagesReceivedEventListener> listeners;
 
     public MessageCounter(int requiredMessages, String correlationId)
     {
-        this.requiredMessages = requiredMessages;
         this.correlationId = correlationId;
+        this.requiredMessages = requiredMessages;
 
         replies = new ArrayList<>();
         listeners = new ArrayList<>();
@@ -26,7 +27,6 @@ public class MessageCounter
     public void MessageReceived(BankInterestReply reply)
     {
         replies.add(reply);
-        System.out.println("Message received, now at: " + replies.size() + " out of " + requiredMessages);
         if (replies.size() == requiredMessages)
         {
             Fire();
