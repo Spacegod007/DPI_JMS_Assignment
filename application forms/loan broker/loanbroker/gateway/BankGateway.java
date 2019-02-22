@@ -14,10 +14,7 @@ import net.sourceforge.jeval.Evaluator;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.ObjectMessage;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 
 public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventListener, BankInterestReply>
@@ -34,6 +31,7 @@ public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventLis
     private BankInterestSerializer bankInterestSerializer;
 
     private Map<String, MessageCounter> messageCounterById;
+    private Map<String, String> correlationIdByAggegationId;
 
     /**
      * Constructs the object
@@ -42,6 +40,7 @@ public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventLis
     {
         super();
         messageCounterById = new HashMap<>();
+        correlationIdByAggegationId = new HashMap<>();
 
         abnAmroMessageSender = new MessageSender(StaticNames.ABN_AMRO_BANK_DESTINATION);
         ingMessageSender = new MessageSender(StaticNames.ING_BANK_DESTINATION);
@@ -64,9 +63,11 @@ public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventLis
         {
             String serializedObject = (String) objectMessage.getObject();
             BankInterestReply bankInterestReply = bankInterestSerializer.DeSerializeReply(serializedObject);
-            String correlationId = message.getJMSCorrelationID();
+            String aggregationId = message.getJMSCorrelationID();
+
+            String correlationId = correlationIdByAggegationId.get(aggregationId);
             MessageCounter messageCounter = messageCounterById.get(correlationId);
-            messageCounter.MessageReceived(bankInterestReply);
+            messageCounter.MessageReceived(aggregationId, bankInterestReply);
         }
         catch (JMSException e)
         {
@@ -87,31 +88,37 @@ public class BankGateway extends GatewayEventContainer<BankReplyReceivedEventLis
         evaluator.putVariable("amount", Integer.toString(request.getAmount()));
         evaluator.putVariable("time", Integer.toString(request.getTime()));
 
-        int messagesSend = 0;
+        List<String> aggregationIds = new ArrayList<>();
 
         try
         {
             if (evaluator.getBooleanResult(ING))
             {
-                ingMessageSender.SendMessage(serializedObject, correlationId);
-                messagesSend++;
+                String uuid = UUID.randomUUID().toString();
+                ingMessageSender.SendMessage(serializedObject, uuid);
+                aggregationIds.add(uuid);
+                correlationIdByAggegationId.put(uuid, correlationId);
             }
 
             if (evaluator.getBooleanResult(RABO_BANK))
             {
-                rabobankMessageSender.SendMessage(serializedObject, correlationId);
-                messagesSend++;
+                String uuid = UUID.randomUUID().toString();
+                rabobankMessageSender.SendMessage(serializedObject, uuid);
+                aggregationIds.add(uuid);
+                correlationIdByAggegationId.put(uuid, correlationId);
             }
 
             if (evaluator.getBooleanResult(ABN_AMRO))
             {
-                abnAmroMessageSender.SendMessage(serializedObject, correlationId);
-                messagesSend++;
+                String uuid = UUID.randomUUID().toString();
+                abnAmroMessageSender.SendMessage(serializedObject, uuid);
+                aggregationIds.add(uuid);
+                correlationIdByAggegationId.put(uuid, correlationId);
             }
 
-            if (messagesSend != 0)
+            if (!aggregationIds.isEmpty())
             {
-                MessageCounter messageCounter = new MessageCounter(messagesSend, correlationId);
+                MessageCounter messageCounter = new MessageCounter(aggregationIds, correlationId);
                 messageCounter.AddListener(this::RequiredMessagesReceived);
                 messageCounterById.put(correlationId, messageCounter);
             }

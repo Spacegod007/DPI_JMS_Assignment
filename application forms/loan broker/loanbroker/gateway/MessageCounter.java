@@ -4,30 +4,43 @@ import loanbroker.event.RequiredMessagesReceivedEventListener;
 import model.bank.BankInterestReply;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MessageCounter
 {
     private final int requiredMessages;
     private final String correlationId;
 
-    private final List<BankInterestReply> replies;
+    private final Map<String, BankInterestReply> bankInterestReplyById;
+    private final List<String> messageIds;
 
     private List<RequiredMessagesReceivedEventListener> listeners;
 
-    public MessageCounter(int requiredMessages, String correlationId)
+    MessageCounter(List<String> messageIds, String correlationId)
     {
         this.correlationId = correlationId;
-        this.requiredMessages = requiredMessages;
+        this.messageIds = messageIds;
+        this.requiredMessages = messageIds.size();
 
-        replies = new ArrayList<>();
         listeners = new ArrayList<>();
+        bankInterestReplyById = new HashMap<>();
     }
 
-    public void MessageReceived(BankInterestReply reply)
+    void MessageReceived(String aggrigationId, BankInterestReply reply)
     {
-        replies.add(reply);
-        if (replies.size() == requiredMessages)
+        if (messageIds.contains(aggrigationId))
+        {
+            bankInterestReplyById.put(aggrigationId, reply);
+
+            checkForRequiredMessageAmount();
+        }
+    }
+
+    private void checkForRequiredMessageAmount()
+    {
+        if (bankInterestReplyById.size() == requiredMessages)
         {
             Fire();
         }
@@ -47,7 +60,7 @@ public class MessageCounter
     {
         for (RequiredMessagesReceivedEventListener listener : listeners)
         {
-            listener.Fire(replies, correlationId);
+            listener.Fire(new ArrayList<>(bankInterestReplyById.values()), correlationId);
         }
     }
 }
